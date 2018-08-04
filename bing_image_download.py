@@ -5,9 +5,12 @@ import datetime
 from bs4 import BeautifulSoup
 import traceback
 import shutil
+import argparse
 
 home= os.path.expanduser("~")
 directory = home + "/Pictures/bing_wallpapers"
+
+url = "http://www.bing.com/HPImageArchive.aspx?format=xml&idx=0&n=1&mkt=en-IN"
 
 user_agents = [
     "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:41.0) Gecko/20100101 Firefox/41.0",
@@ -53,13 +56,13 @@ def request_wallpaper(url):
 
 def save_wallpaper():
   # download the daily release of the bing wallpaper by microsoft
-  url = "http://www.bing.com/HPImageArchive.aspx?format=xml&idx=0&n=1&mkt=en-IN"
   if os.path.exists(directory) == False:
       os.makedirs(directory)
   request_wallpaper(url)
 
 #change wallpaper
 def change_wallpaper():
+    print ("changing current wallpaper")
     save_wallpaper()
     path= directory + "/"
     date = str(datetime.date.today()) + ".jpg"
@@ -72,20 +75,39 @@ def change_wallpaper():
 
 # organise wallpaper directory on year basis to de-clutter. all files except for current year get their own folders
 def archive():
-    wallpaper_path= directory
-    try:
-        current_year= str(datetime.datetime.now().year)
-        for file in os.listdir(wallpaper_path):     # list all files
-            if os.path.isfile(os.path.join(wallpaper_path, file)): # check if it's a file
-                file_year= file.split("-")[0]
-                if current_year == file_year:
-                    continue
-                if os.path.exists(os.path.join(wallpaper_path,file_year)) == False:
-                    os.makedirs(os.path.join(wallpaper_path,file_year))
-                shutil.move(os.path.join(wallpaper_path, file), os.path.join(wallpaper_path,file_year))
-    except:
-        print ("there was some error moving the files")
-        print (traceback.format_exc())
+    if os.path.exists(directory) == False:
+        print ("fetch wallpaper first using --fetch options. nothing to organise")
+    else:
+        print ("archiving...")
+        wallpaper_path= directory
+        try:
+            current_year= str(datetime.datetime.now().year)
+            for file in os.listdir(wallpaper_path):     # list all files
+                if os.path.isfile(os.path.join(wallpaper_path, file)): # check if it's a file
+                    file_year= file.split("-")[0]
+                    if current_year == file_year:
+                        continue
+                    if os.path.exists(os.path.join(wallpaper_path,file_year)) == False:
+                        os.makedirs(os.path.join(wallpaper_path,file_year))
+                    shutil.move(os.path.join(wallpaper_path, file), os.path.join(wallpaper_path,file_year))
+        except:
+            print ("there was some error moving the files")
+            print (traceback.format_exc())
 
 if __name__ == '__main__':
-    change_wallpaper()
+    parser= argparse.ArgumentParser(description="utility program to fetch bing wallpapers and manage them...")
+    parser.add_argument('--archive', action="store_true", dest="archive",default=False, help="archive all wallpapers into year folders")
+    parser.add_argument('--fetch', action="store_true", dest="fetch",default=False, help="fetch todays wallpaper but do not change current")
+    parser.add_argument('--change', action="store_true", dest="change",default=False, help="fetch and change current wallpaper")
+
+    results = parser.parse_args()
+    # print (results)
+    if results.archive:
+        archive()    
+    elif results.fetch:
+        request_wallpaper(url)
+    elif results.change:
+        change_wallpaper()
+    else:
+        change_wallpaper()
+
